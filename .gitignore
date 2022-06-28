@@ -55,30 +55,30 @@ compile_commands.json
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/dictionaries
-.idea/**/shelf
+LazyTP/.idea/**/workspace.xml
+LazyTP/.idea/**/tasks.xml
+LazyTP/.idea/**/usage.statistics.xml
+LazyTP/.idea/**/dictionaries
+LazyTP/.idea/**/shelf
 
 # AWS User-specific
-.idea/**/aws.xml
+LazyTP/.idea/**/aws.xml
 
 # Generated files
-.idea/**/contentModel.xml
+LazyTP/.idea/**/contentModel.xml
 
 # Sensitive or high-churn files
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
-.idea/**/dbnavigator.xml
+LazyTP/.idea/**/dataSources/
+LazyTP/.idea/**/dataSources.ids
+LazyTP/.idea/**/dataSources.local.xml
+LazyTP/.idea/**/sqlDataSources.xml
+LazyTP/.idea/**/dynamic.xml
+LazyTP/.idea/**/uiDesigner.xml
+LazyTP/.idea/**/dbnavigator.xml
 
 # Gradle
-.idea/**/gradle.xml
-.idea/**/libraries
+LazyTP/.idea/**/gradle.xml
+LazyTP/.idea/**/libraries
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
@@ -94,37 +94,37 @@ compile_commands.json
 # *.ipr
 
 # CMake
-cmake-build-*/
+LazyTP/cmake-build-*/
 
 # Mongo Explorer plugin
-.idea/**/mongoSettings.xml
+LazyTP/.idea/**/mongoSettings.xml
 
 # File-based project format
 *.iws
 
 # IntelliJ
-out/
+LazyTP/out/
 
 # mpeltonen/sbt-idea plugin
-.idea_modules/
+LazyTP/.idea_modules/
 
 # JIRA plugin
-atlassian-ide-plugin.xml
+LazyTP/atlassian-ide-plugin.xml
 
 # Cursive Clojure plugin
-.idea/replstate.xml
+LazyTP/.idea/replstate.xml
 
 # SonarLint plugin
-.idea/sonarlint/
+LazyTP/.idea/sonarlint/
 
 # Crashlytics plugin (for Android Studio and IntelliJ)
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
+LazyTP/com_crashlytics_export_strings.xml
+LazyTP/crashlytics.properties
+LazyTP/crashlytics-build.properties
+LazyTP/fabric.properties
 
 # Editor-based Rest Client
-.idea/httpRequests
+LazyTP/.idea/httpRequests
 
 # Android studio 3.1+ serialized cache file
-.idea/caches/build_file_checksums.ser
+LazyTP/.idea/caches/build_file_checksums.ser

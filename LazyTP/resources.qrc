@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>resources/4oddnig.png</file>
+    </qresource>
+</RCC>
