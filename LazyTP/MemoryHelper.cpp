@@ -21,7 +21,6 @@ MemoryHelper::MemoryHelper(DWORD pID)
     }
     else
     {
-        //std::cout << "MemoryHelper:: process handle sucessfully created!" << std::endl;
         this->processHandle = processHandle;
     }
 }
@@ -90,13 +89,12 @@ uintptr_t MemoryHelper::GetDynamicAddress(uintptr_t baseAddress, vector<int> off
     {
         ReadProcessMemory(this->processHandle, (void*) (dynamicAddress + offsets[i]), &dynamicAddress,
                           sizeof(uintptr_t), NULL);
-        //std::cout << "Current Adress: " << std::hex << healthAddress << std::endl;
     }
     dynamicAddress += offsets[offsets.size() - 1];
     return dynamicAddress;
 }
 
-uintptr_t MemoryHelper::SetpBaseAddress(TCHAR *moduleName)
+uintptr_t MemoryHelper::SetBaseAddress(TCHAR *moduleName)
 {
     this->pBaseAddress = this->GetModuleBaseAddress(moduleName);
     return this->pBaseAddress;
@@ -106,14 +104,12 @@ uintptr_t MemoryHelper::GetAddressFromSignature(vector<int> signature)
 {
     if (this->pBaseAddress == NULL || this->processHandle == NULL)
     {
-//        cout << dec << "Requirements not fullfilled" << endl;
         return NULL;
     }
     std::vector<unsigned char> memBuffer(this->pSize);
     if (!ReadProcessMemory(this->processHandle, reinterpret_cast<LPCVOID>(this->pBaseAddress), memBuffer.data(),
                            this->pSize, NULL))
     {
-//        std::cout << GetLastError() << std::endl;
         return NULL;
     }
     for (int i = 0; i < this->pSize; i++)
@@ -121,10 +117,7 @@ uintptr_t MemoryHelper::GetAddressFromSignature(vector<int> signature)
         for (uintptr_t j = 0; j < signature.size(); j++)
         {
             if (signature.at(j) != -1 && signature[j] != memBuffer[i + j])
-                //std::cout << std::hex << signature.at(j) << std::hex << memBuffer[i + j] << std::endl;
                 break;
-//			if(signature[j] == memBuffer[i + j] && j>0)
-//				std::cout << std::hex << int(signature[j]) << std::hex << int(memBuffer[i + j]) << j <<std::endl;
             if (j + 1 == signature.size())
                 return this->pBaseAddress + i;
         }

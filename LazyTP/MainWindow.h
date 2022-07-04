@@ -1,5 +1,5 @@
 //
-// Created by Tim on 25/06/2022.
+// Created by Staz on 25/06/2022.
 //
 
 #ifndef LAZYTP_MAINWINDOW_H
@@ -18,6 +18,7 @@
 #include <QVector3D>
 #include <QMap>
 #include <QTimer>
+#include "TpListItem.h"
 #include "KeyboardHook.h"
 #include "BnSWrapper.h"
 
@@ -37,10 +38,15 @@ private slots:
     void onKeyPressed();
     void onAddButton(bool checked = false);
     void onRemoveButton(bool checked = false);
+    void onConnectButton(bool checked = false);
+    void onHelpButton(bool checked = false);
     void onTimer();
+    void onTPSelected(QListWidgetItem* item);
 
 private:
+    TpListItem* m_pSelectedTP;
     QMap<QString, QVector3D>* m_pTPMap;
+    QString m_helpText;
 
     QString m_jsonFileName;
 
@@ -53,10 +59,16 @@ private:
     QHBoxLayout* m_pListWidgetLayout;
     QHBoxLayout* m_pCoordsInputLayout;
     QHBoxLayout* m_pButtonsLayout;
+    QHBoxLayout* m_pCurrentSelectionLayout;
+
+    QPushButton* m_pConnectButton;
+    QPushButton* m_pHelpButton;
 
     QLabel* m_pXCoord;
     QLabel* m_pYCoord;
     QLabel* m_pZCoord;
+
+    QLabel* m_pCurrentSelectionLabel;
 
     QListWidget* m_pTPList;
 

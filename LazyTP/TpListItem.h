@@ -1,5 +1,5 @@
 //
-// Created by TKK on 28.06.2022.
+// Created by Staz on 28.06.2022.
 //
 
 #ifndef LAZYTP_TPLISTITEM_H

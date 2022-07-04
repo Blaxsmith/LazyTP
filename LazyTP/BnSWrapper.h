@@ -1,5 +1,5 @@
 //
-// Created by TKK on 26.06.2022.
+// Created by Staz on 26.06.2022.
 //
 
 #ifndef LAZYTP_BNSWRAPPER_H
@@ -18,6 +18,9 @@ public:
 
     QVector3D getCurrentPos();
     void setCurrentPos(const QVector3D& pos);
+
+private:
+    void refreshPlayerController();
 
 
 

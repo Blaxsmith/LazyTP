@@ -1,5 +1,5 @@
 //
-// Created by Tim on 25/06/2022.
+// Created by Staz on 25/06/2022.
 //
 
 #include "MainWindow.h"
@@ -9,12 +9,23 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QJsonArray>
-#include "TpListItem.h"
+#include <QDialog>
+#include <QDesktopServices>
+
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_pMainLayout(new QVBoxLayout()),
                                           m_pCoordLayout(new QHBoxLayout()), m_pListWidgetLayout(new QHBoxLayout()),
-                                          m_pCoordsInputLayout(new QHBoxLayout()), m_pButtonsLayout(new QHBoxLayout())
+                                          m_pCoordsInputLayout(new QHBoxLayout()), m_pButtonsLayout(new QHBoxLayout()),
+                                          m_pCurrentSelectionLayout(new QHBoxLayout())
 {
+    m_helpText =
+            "1. Connect to B&S using the \"Connect\"-Button.<br><br>"
+            "2. Add a TP either by entering the name and the coordinates or if you want to use your current position, just enter a name and press the \"Add\"-Button.<br><br>"
+            "3. To teleport, simply double click your desired TP and then press the configured key on your keyboard in game.<br><br>"
+            "The default key is \"Numpad-9\". This can be changed in the <a href=\"coords.json\">coords.json</a>, which is located right beside this executable.<br>"
+            "The number of the key is given by the <a href=\"https://cherrytree.at/misc/vk.htm\">virtual key codes</a>.<br>";
+    m_pBns = Q_NULLPTR;
+    m_pSelectedTP = Q_NULLPTR;
     m_jsonFileName = "coords.json";
     m_pMainWidget = new QWidget();
     m_pMainWidget->setLayout(m_pMainLayout);
@@ -22,10 +33,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_pMainLayout(new
     setWindowTitle("Lazy TP");
     setMinimumSize(QSize(200, 600));
 
-    m_pXCoord = new QLabel("2000");
-    m_pYCoord = new QLabel("3000");
-    m_pZCoord = new QLabel("4000");
+    m_pConnectButton = new QPushButton("Connect to BnS");
+    m_pHelpButton = new QPushButton("?");
+    m_pXCoord = new QLabel("X: ---");
+    m_pYCoord = new QLabel("Y: ---");
+    m_pZCoord = new QLabel("Z: ---");
     m_pTPList = new QListWidget();
+    m_pCurrentSelectionLabel = new QLabel("<b>Currently no TP selected</b>");
     m_pCoordInputLabel = new QLabel("Name: ");
     m_pXInputLabel = new QLabel("X: ");
     m_pYInputLabel = new QLabel("Y: ");
@@ -39,14 +53,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_pMainLayout(new
 
     m_pMainLayout->addLayout(m_pCoordLayout);
     m_pMainLayout->addLayout(m_pListWidgetLayout);
+    m_pMainLayout->addLayout(m_pCurrentSelectionLayout);
     m_pMainLayout->addLayout(m_pCoordsInputLayout);
     m_pMainLayout->addLayout(m_pButtonsLayout);
 
+    m_pCoordLayout->addWidget(m_pConnectButton);
+    m_pCoordLayout->addSpacing(25);
     m_pCoordLayout->addWidget(m_pXCoord);
     m_pCoordLayout->addWidget(m_pYCoord);
     m_pCoordLayout->addWidget(m_pZCoord);
+    m_pCoordLayout->addWidget(m_pHelpButton, 0, Qt::AlignRight);
 
     m_pListWidgetLayout->addWidget(m_pTPList);
+
+    m_pCurrentSelectionLayout->addWidget(m_pCurrentSelectionLabel, 0, Qt::AlignCenter);
 
     m_pCoordsInputLayout->addWidget(m_pCoordInputLabel);
     m_pCoordsInputLayout->addWidget(m_pCoordInput);
@@ -62,9 +82,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_pMainLayout(new
 
     connect(m_pAddButton, &QPushButton::clicked, this, &MainWindow::onAddButton);
     connect(m_pRemoveButton, &QPushButton::clicked, this, &MainWindow::onRemoveButton);
+    connect(m_pConnectButton, &QPushButton::clicked, this, &MainWindow::onConnectButton);
+    connect(m_pHelpButton, &QPushButton::clicked, this, &MainWindow::onHelpButton);
+    connect(m_pTPList, &QListWidget::itemDoubleClicked, this, &MainWindow::onTPSelected);
 
     m_pTPList->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_pTPList->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    m_pCurrentSelectionLabel->setAlignment(Qt::AlignCenter);
+    m_pCurrentSelectionLabel->setTextFormat(Qt::RichText);
 
     m_pIntValidator = new QIntValidator(this);
     QLocale locale = QLocale::c();
@@ -78,7 +104,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_pMainLayout(new
     loadJson();
     updateTPList();
 
-    m_pBns = new BnSWrapper();
     m_pTimer = new QTimer(this);
     connect(m_pTimer, &QTimer::timeout, this, &MainWindow::onTimer);
     m_pTimer->start(250);
@@ -97,12 +122,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::onKeyPressed()
 {
-    auto selectedItemList = m_pTPList->selectedItems();
-    if(selectedItemList.isEmpty())
+    if (!m_pBns || !m_pSelectedTP)
         return;
-    auto item = m_pTPList->selectedItems().at(0);
-    auto name = dynamic_cast<TpListItem*>(item)->getName();
-    auto pos = (*m_pTPMap)[name];
+
+    auto pos = (*m_pTPMap)[m_pSelectedTP->getName()];
     m_pBns->setCurrentPos(pos);
 }
 
@@ -110,14 +133,16 @@ void MainWindow::onAddButton(bool checked)
 {
     Q_UNUSED(checked)
     QVector3D pos;
-    if(m_pXInput->text().isEmpty() || m_pYInput->text().isEmpty() || m_pZInput->text().isEmpty())
+    if (m_pXInput->text().isEmpty() || m_pYInput->text().isEmpty() || m_pZInput->text().isEmpty())
     {
-        if(m_pCoordInput->text().isEmpty())
+        if (m_pCoordInput->text().isEmpty())
         {
             return;
         }
         else
         {
+            if (!m_pBns)
+                return;
             pos = m_pBns->getCurrentPos();
         }
     }
@@ -138,10 +163,10 @@ void MainWindow::onRemoveButton(bool checked)
 {
     Q_UNUSED(checked)
     auto selectedItemList = m_pTPList->selectedItems();
-    if(selectedItemList.isEmpty())
+    if (selectedItemList.isEmpty())
         return;
     auto item = m_pTPList->selectedItems().at(0);
-    auto name = dynamic_cast<TpListItem*>(item)->getName();
+    auto name = dynamic_cast<TpListItem *>(item)->getName();
     m_pTPMap->remove(name);
     saveJson();
     updateTPList();
@@ -153,7 +178,7 @@ void MainWindow::loadJson()
     file.setFileName(m_jsonFileName);
     QString val;
 
-    if(file.open(QIODevice::ReadWrite | QIODeviceBase::Text))
+    if (file.open(QIODevice::ReadWrite | QIODeviceBase::Text))
     {
 //        qDebug() << "Json opened - " + QString::number(file.size());
         val = file.readAll();
@@ -163,7 +188,7 @@ void MainWindow::loadJson()
         qDebug() << "Json could not be opened";
     }
 
-    if(!file.exists() || val.isEmpty())
+    if (!file.exists() || val.isEmpty())
     {
         qDebug() << "Creating dummy file";
         QJsonObject content;
@@ -172,7 +197,8 @@ void MainWindow::loadJson()
         m_keyCode = 0x69;
         content.insert("TPs", contentArray);
         QJsonDocument basicDoc(content);
-        QTextStream stream(&file);stream << basicDoc.toJson(QJsonDocument::Indented);
+        QTextStream stream(&file);
+        stream << basicDoc.toJson(QJsonDocument::Indented);
         file.close();
         return;
     }
@@ -183,7 +209,7 @@ void MainWindow::loadJson()
     m_keyCode = keyCode.toInt();
     QJsonArray tps = mainObj["TPs"].toArray();
     m_pTPMap->clear();
-    for(auto element : tps)
+    for (auto element: tps)
     {
         QJsonObject tp = element.toObject();
         QString name = tp["Name"].toString();
@@ -199,7 +225,7 @@ void MainWindow::saveJson()
     QJsonObject mainObj;
     mainObj.insert("keyCode", QJsonValue(m_keyCode));
     QJsonArray tps;
-    for(auto e : m_pTPMap->keys())
+    for (auto e: m_pTPMap->keys())
     {
         QJsonObject tp;
         tp.insert("Name", QJsonValue::fromVariant(e));
@@ -222,18 +248,65 @@ void MainWindow::saveJson()
 void MainWindow::updateTPList()
 {
     m_pTPList->clear();
-    for(auto e : m_pTPMap->keys())
+    for (auto e: m_pTPMap->keys())
     {
         QVector3D pos = (*m_pTPMap)[e];
-        m_pTPList->addItem(new TpListItem(e + ":\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()), e));
+        m_pTPList->addItem(new TpListItem(
+                e + ":\t" + QString::number(pos.x()) + "\t" + QString::number(pos.y()) + "\t" +
+                QString::number(pos.z()), e));
 //        m_pTPList->addItem(e + ":\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()));
     }
 }
 
 void MainWindow::onTimer()
 {
+    if (!m_pBns)
+        return;
     QVector3D p = m_pBns->getCurrentPos();
     m_pXCoord->setText("X: " + QString::number(p.x()));
     m_pYCoord->setText("Y: " + QString::number(p.y()));
     m_pZCoord->setText("Z: " + QString::number(p.z()));
+}
+
+void MainWindow::onConnectButton(bool checked)
+{
+    Q_UNUSED(checked)
+    if (!m_pBns)
+        m_pBns = new BnSWrapper();
+    m_pConnectButton->setEnabled(false);
+}
+
+void MainWindow::onTPSelected(QListWidgetItem *item)
+{
+    m_pSelectedTP = dynamic_cast<TpListItem *>(item);
+    if(!m_pSelectedTP)
+    {
+        m_pCurrentSelectionLabel->setText("<b>Currently no TP selected</b>");
+    }
+    else
+    {
+        m_pCurrentSelectionLabel->setText("<b>" + m_pSelectedTP->getName() + "</b>");
+    }
+}
+
+void MainWindow::onHelpButton(bool checked)
+{
+    QDialog dialog = QDialog(this);
+    dialog.setModal(true);
+    dialog.setMinimumSize(300, 200);
+    QHBoxLayout layout = QHBoxLayout();
+//    QTextBrowser text = QTextBrowser();
+//    text.setText(m_helpText);
+//    text.setOpenExternalLinks(true);
+//    text.setAcceptRichText(true);
+//    text.setReadOnly(true);
+    QLabel text(m_helpText);
+    text.setTextFormat(Qt::RichText);
+    text.setWordWrap(true);
+    connect(&text, &QLabel::linkActivated, [](const QString& link){
+        QDesktopServices::openUrl(link);
+    });
+    layout.addWidget(&text);
+    dialog.setLayout(&layout);
+    dialog.exec();
 }

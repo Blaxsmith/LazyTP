@@ -1,5 +1,5 @@
 //
-// Created by TKK on 25.06.2022.
+// Created by Staz on 25.06.2022.
 //
 
 #ifndef LAZYTP_KEYBOARDHOOK_H

@@ -1,10 +1,12 @@
 //
-// Created by TKK on 26.06.2022.
+// Created by Staz on 26.06.2022.
 //
 
 #include "BnSWrapper.h"
 #include <cstdio>
 #include <algorithm>
+#include <QMessageBox>
+#include <QApplication>
 
 
 using namespace std;
@@ -24,10 +26,18 @@ BnSWrapper::BnSWrapper() :
 {
     DWORD pid = 0;
     HWND hWnd = FindWindowA(0, ("Blade & Soul"));
+    if(hWnd == nullptr)
+    {
+        QMessageBox msg;
+        msg.setText("Could not find BnS");
+        msg.exec();
+        QApplication::exit(0);
+        exit(0);
+    }
     GetWindowThreadProcessId(hWnd, &pid);
     m_pHelper = new MemoryHelper(pid);
     auto moduleName = L"BNSR.exe";
-    m_pBnsBase = m_pHelper->SetpBaseAddress((TCHAR *) moduleName);
+    m_pBnsBase = m_pHelper->SetBaseAddress((TCHAR *) moduleName);
     m_sigAddress = m_pHelper->GetAddressFromSignature(m_sig);
     m_pEngineAddr = m_pHelper->GetAddress(m_sigAddress - 0x1C, 3, 7);
     m_pEngine = m_pHelper->Read<uintptr_t>(m_pEngineAddr).value();
@@ -35,10 +45,7 @@ BnSWrapper::BnSWrapper() :
     m_pInstance = m_pHelper->Read<uintptr_t>(m_pViewPort + m_uGameInstance).value();
     m_pLocalPlayer = m_pHelper->Read<uintptr_t>(m_pInstance + m_uLocalPlayer).value();
     m_pOwnPlayer = m_pHelper->Read<uintptr_t>(m_pLocalPlayer + m_uLocalPlayerFirstObject).value();
-    m_pPlayerController = m_pHelper->Read<uintptr_t>(m_pOwnPlayer + m_aPlayerController).value();
-    m_pPawn = m_pHelper->Read<uintptr_t>(m_pPlayerController + m_aPawn).value();
-    m_pScene = m_pHelper->Read<uintptr_t>(m_pPawn + m_uScenceComponent).value();
-    m_pPos = m_pScene + m_pos;
+    refreshPlayerController();
 
     float speed = m_pHelper->Read<float>(m_pPawn + m_customTimeDilation).value();
 //    cout << "BnS: " << hex << m_pBnsBase << endl;
@@ -52,6 +59,7 @@ BnSWrapper::~BnSWrapper()
 
 QVector3D BnSWrapper::getCurrentPos()
 {
+    refreshPlayerController();
     auto xo = m_pHelper->Read<float>(m_pPos + 0x00);
     auto yo = m_pHelper->Read<float>(m_pPos + 0x04);
     auto zo = m_pHelper->Read<float>(m_pPos + 0x08);
@@ -66,9 +74,25 @@ QVector3D BnSWrapper::getCurrentPos()
 
 void BnSWrapper::setCurrentPos(const QVector3D& pos)
 {
+    refreshPlayerController();
     auto bx = m_pHelper->Write(m_pPos + 0x00, pos.x());
     auto by = m_pHelper->Write(m_pPos + 0x04, pos.y());
     auto bz = m_pHelper->Write(m_pPos + 0x08, pos.z());
 //    if(!bx || !by || !bz)
 //        qDebug() << "Could not write to memory";
+}
+
+void BnSWrapper::refreshPlayerController()
+{
+    if(m_pOwnPlayer)
+        m_pPlayerController = m_pHelper->Read<uintptr_t>(m_pOwnPlayer + m_aPlayerController).value();
+    else return;
+    if(m_pPlayerController)
+        m_pPawn = m_pHelper->Read<uintptr_t>(m_pPlayerController + m_aPawn).value();
+    else return;
+    if(m_pPawn)
+        m_pScene = m_pHelper->Read<uintptr_t>(m_pPawn + m_uScenceComponent).value();
+    else return;
+    if(m_pScene)
+        m_pPos = m_pScene + m_pos;
 }

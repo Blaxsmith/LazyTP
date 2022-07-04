@@ -1,8 +1,10 @@
-#pragma once
-#include <Windows.h>  //DWORD, HANDLE
-#include <TlHelp32.h> //CreateToolhelp32Snapshot
-#include <tchar.h>    //_tcscmp
-#include <Psapi.h>    //GetModuleInformation
+#ifndef LAZYTP_MEMORYHELPER_H
+#define LAZYTP_MEMORYHELPER_H
+
+#include <Windows.h>
+#include <TlHelp32.h>
+#include <tchar.h>
+#include <Psapi.h>
 #include <vector>
 #include <optional>
 using namespace std;
@@ -17,7 +19,7 @@ public:
 	uintptr_t GetDynamicAddress(uintptr_t baseAddress, vector<int> offsets);
 	uintptr_t GetAddressFromSignature(vector<int> signature);
 	void SetpID(DWORD pID);
-	uintptr_t SetpBaseAddress(TCHAR* moduleName);
+	uintptr_t SetBaseAddress(TCHAR* moduleName);
 	DWORD GetpID();
 	HANDLE GetprocessHandle();
     uintptr_t GetAddress(uintptr_t AddressOfCall, int index, int length);
@@ -47,7 +49,9 @@ public:
 	
 private:
 	DWORD pID;
-	uintptr_t pBaseAddress; //Base Address of exe
-	DWORD pSize;		//Size of exe module
+	uintptr_t pBaseAddress;
+	DWORD pSize;
 	HANDLE processHandle;
 };
+
+#endif// LAZYTP_MEMORYHELPER_H
