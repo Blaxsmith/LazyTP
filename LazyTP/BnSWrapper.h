@@ -26,31 +26,27 @@ private:
 
 private:
     MemoryHelper* m_pHelper;
-    vector<int> m_sig;
+    vector<unsigned char> m_sig;
+
+    vector<unsigned short> m_offsetsPlayer;
+    vector<unsigned short> m_offsetsPlayerPos;
 
     //Offsets
-    int m_uGameViewPort;
-    int m_uGameInstance;
-    int m_uLocalPlayer;
-    int m_uLocalPlayerFirstObject;
-    int m_aPlayerController;
-    int m_aPawn;
-    int m_customTimeDilation;
-    int m_uScenceComponent;
-    int m_pos;
+    unsigned short m_uGameViewPort;
+    unsigned short m_uGameInstance;
+    unsigned short m_uLocalPlayer;
+    unsigned short m_uLocalPlayerFirstObject;
+    unsigned short m_aPlayerController;
+    unsigned short m_aPawn;
+    unsigned short m_customTimeDilation;
+    unsigned short m_uScenceComponent;
+    unsigned short m_pos;
 
     //Addresses
     uintptr_t m_pBnsBase;
     uintptr_t m_sigAddress;
     uintptr_t m_pEngineAddr;
-    uintptr_t m_pEngine;
-    uintptr_t m_pViewPort;
-    uintptr_t m_pInstance;
-    uintptr_t m_pLocalPlayer;
     uintptr_t m_pOwnPlayer;
-    uintptr_t m_pPlayerController;
-    uintptr_t m_pPawn;
-    uintptr_t m_pScene;
     uintptr_t m_pPos;
 };
 

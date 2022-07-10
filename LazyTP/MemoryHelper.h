@@ -12,20 +12,17 @@ using namespace std;
 class MemoryHelper
 {
 public:
-	MemoryHelper();
-	MemoryHelper(DWORD pID);
+	MemoryHelper(DWORD pID, const wchar_t* moduleName);
 	~MemoryHelper();
-	uintptr_t GetModuleBaseAddress(TCHAR* lpszModuleName);
-	uintptr_t GetDynamicAddress(uintptr_t baseAddress, vector<int> offsets);
-	uintptr_t GetAddressFromSignature(vector<int> signature);
-	void SetpID(DWORD pID);
-	uintptr_t SetBaseAddress(TCHAR* moduleName);
-	DWORD GetpID();
-	HANDLE GetprocessHandle();
+	uintptr_t GetAddressFromSignature(vector<unsigned char> signature);
+	uintptr_t GetBaseAddress();
     uintptr_t GetAddress(uintptr_t AddressOfCall, int index, int length);
+    [[nodiscard]] uintptr_t GetAddressWithOffsets(uintptr_t baseAddress, const vector<unsigned short>& offsets, bool baseAddressIsPointer = false) const;
 
+private:
+    uintptr_t GetModuleBaseAddress(TCHAR* lpszModuleName);
 
-
+public:
     template<typename T>
     [[nodiscard]] std::optional<T> Read(const std::uintptr_t address_ptr) const noexcept(false)
     {
@@ -48,9 +45,9 @@ public:
     }
 	
 private:
-	DWORD pID;
+	DWORD processID;
 	uintptr_t pBaseAddress;
-	DWORD pSize;
+	DWORD processSize;
 	HANDLE processHandle;
 };
 

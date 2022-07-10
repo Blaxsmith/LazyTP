@@ -180,7 +180,6 @@ void MainWindow::loadJson()
 
     if (file.open(QIODevice::ReadWrite | QIODeviceBase::Text))
     {
-//        qDebug() << "Json opened - " + QString::number(file.size());
         val = file.readAll();
     }
     else
@@ -254,7 +253,6 @@ void MainWindow::updateTPList()
         m_pTPList->addItem(new TpListItem(
                 e + ":\t" + QString::number(pos.x()) + "\t" + QString::number(pos.y()) + "\t" +
                 QString::number(pos.z()), e));
-//        m_pTPList->addItem(e + ":\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()) + "\t" + QString::number(pos.x()));
     }
 }
 
@@ -291,15 +289,11 @@ void MainWindow::onTPSelected(QListWidgetItem *item)
 
 void MainWindow::onHelpButton(bool checked)
 {
+    Q_UNUSED(checked)
     QDialog dialog = QDialog(this);
     dialog.setModal(true);
     dialog.setMinimumSize(300, 200);
     QHBoxLayout layout = QHBoxLayout();
-//    QTextBrowser text = QTextBrowser();
-//    text.setText(m_helpText);
-//    text.setOpenExternalLinks(true);
-//    text.setAcceptRichText(true);
-//    text.setReadOnly(true);
     QLabel text(m_helpText);
     text.setTextFormat(Qt::RichText);
     text.setWordWrap(true);

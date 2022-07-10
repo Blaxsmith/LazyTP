@@ -1,36 +1,31 @@
 #include "MemoryHelper.h"
+#include <qdebug.h>
 
-#include <iostream>
 
-MemoryHelper::MemoryHelper()
+MemoryHelper::MemoryHelper(DWORD pID, const wchar_t* moduleName)
 {
-    pID = NULL;
-    processHandle = NULL;
-}
-
-MemoryHelper::MemoryHelper(DWORD pID)
-{
-    this->pID = pID;
-    HANDLE processHandle = NULL;
-    processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pID);
-    if (processHandle == INVALID_HANDLE_VALUE || processHandle == NULL)
+    processID = pID;
+    processSize = 0;
+    processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+    if (processHandle == INVALID_HANDLE_VALUE || processHandle == nullptr)
     {
-        std::cerr << "Failed to open process -- invalid handle" << std::endl;
-        std::cerr << "Error code: " << GetLastError() << std::endl;
-        throw "Failed to open process";
+        qDebug() << "Failed to open process -- invalid handle";
+        qDebug() << "Error code: " << GetLastError();
+        throw std::exception("Failed to open process");
     }
-    else
-    {
-        this->processHandle = processHandle;
-    }
+    pBaseAddress = GetModuleBaseAddress((TCHAR *) moduleName);
 }
-
 
 MemoryHelper::~MemoryHelper()
 {
-    CloseHandle(this->processHandle);
+    CloseHandle(processHandle);
 }
 
+
+uintptr_t MemoryHelper::GetBaseAddress()
+{
+    return pBaseAddress;
+}
 
 uintptr_t MemoryHelper::GetAddress(uintptr_t AddressOfCall, int index, int length)
 {
@@ -38,29 +33,14 @@ uintptr_t MemoryHelper::GetAddress(uintptr_t AddressOfCall, int index, int lengt
         return 0;
 
     long delta;
-    ReadProcessMemory(processHandle, (void *) (AddressOfCall + index), &delta, sizeof(long), NULL);
+    ReadProcessMemory(processHandle, (void *) (AddressOfCall + index), &delta, sizeof(long), nullptr);
     return AddressOfCall + delta + length;
-}
-
-void MemoryHelper::SetpID(DWORD pID)
-{
-    this->pID = pID;
-}
-
-DWORD MemoryHelper::GetpID()
-{
-    return this->pID;
-}
-
-HANDLE MemoryHelper::GetprocessHandle()
-{
-    return this->processHandle;
 }
 
 uintptr_t MemoryHelper::GetModuleBaseAddress(TCHAR *lpszModuleName)
 {
     uintptr_t dwModuleBaseAddress = 0;
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pID);
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, processID);
     MODULEENTRY32 ModuleEntry32 = {0};
     ModuleEntry32.dwSize = sizeof(MODULEENTRY32);
 
@@ -77,50 +57,55 @@ uintptr_t MemoryHelper::GetModuleBaseAddress(TCHAR *lpszModuleName)
 
 
     }
-    pSize = ModuleEntry32.modBaseSize;
+    processSize = ModuleEntry32.modBaseSize;
     CloseHandle(hSnapshot);
     return dwModuleBaseAddress;
 }
 
-uintptr_t MemoryHelper::GetDynamicAddress(uintptr_t baseAddress, vector<int> offsets)
+uintptr_t MemoryHelper::GetAddressFromSignature(vector<unsigned char> signature)
 {
-    uintptr_t dynamicAddress = baseAddress;
-    for (int i = 0; i < offsets.size(); i++)
-    {
-        ReadProcessMemory(this->processHandle, (void*) (dynamicAddress + offsets[i]), &dynamicAddress,
-                          sizeof(uintptr_t), NULL);
-    }
-    dynamicAddress += offsets[offsets.size() - 1];
-    return dynamicAddress;
-}
-
-uintptr_t MemoryHelper::SetBaseAddress(TCHAR *moduleName)
-{
-    this->pBaseAddress = this->GetModuleBaseAddress(moduleName);
-    return this->pBaseAddress;
-}
-
-uintptr_t MemoryHelper::GetAddressFromSignature(vector<int> signature)
-{
-    if (this->pBaseAddress == NULL || this->processHandle == NULL)
+    if (pBaseAddress == NULL || processHandle == nullptr)
     {
         return NULL;
     }
-    std::vector<unsigned char> memBuffer(this->pSize);
-    if (!ReadProcessMemory(this->processHandle, reinterpret_cast<LPCVOID>(this->pBaseAddress), memBuffer.data(),
-                           this->pSize, NULL))
+    std::vector<unsigned char> memBuffer(processSize);
+    if (!ReadProcessMemory(processHandle, reinterpret_cast<LPCVOID>(pBaseAddress), memBuffer.data(),
+                           processSize, nullptr))
     {
         return NULL;
     }
-    for (int i = 0; i < this->pSize; i++)
+    for (int i = 0; i < processSize; i++)
     {
         for (uintptr_t j = 0; j < signature.size(); j++)
         {
-            if (signature.at(j) != -1 && signature[j] != memBuffer[i + j])
+            if (signature[j] != memBuffer[i + j])
                 break;
             if (j + 1 == signature.size())
-                return this->pBaseAddress + i;
+                return pBaseAddress + i;
         }
     }
     return NULL;
+}
+
+uintptr_t MemoryHelper::GetAddressWithOffsets(uintptr_t baseAddress, const vector<unsigned short>& offsets, bool baseAddressIsPointer) const
+{
+    uintptr_t dynamicAddress = baseAddress;
+    std::optional<uintptr_t> content;
+    if(baseAddressIsPointer)
+    {
+        content = Read<uintptr_t>(baseAddress);
+        if(!content.has_value())
+            return NULL;
+        else
+            dynamicAddress = content.value();
+    }
+    for(int i = 0; i < offsets.size() - 1; i++)
+    {
+        content = Read<uintptr_t>(dynamicAddress + offsets.at(i));
+        if(!content.has_value())
+            return NULL;
+        else
+            dynamicAddress = content.value();
+    }
+    return dynamicAddress + offsets.at(offsets.size() - 1);
 }
